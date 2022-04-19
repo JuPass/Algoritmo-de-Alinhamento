@@ -1,0 +1,96 @@
+from Bio import SeqIO #biopython
+import numpy as np
+
+with open("m.fasta") as in_handle: #lê as duas primeiras sequências do arquivo fasta
+    record_iterator = SeqIO.parse(in_handle, "fasta")
+    seq1 = next(record_iterator)
+    seq2 = next(record_iterator)
+
+#parâmetros
+gap = -2
+match = 1
+mismatch = -1
+
+
+tam1 = len(seq1) + 1 # o +1 é para incluir o começo da matriz que é 0,0
+tam2 = len(seq2) + 1
+
+#cria uma matriz preenchida com zeros
+ar = np.zeros(shape=(tam2, tam1))
+
+j=1
+i=1
+
+#preenche a linha 0
+while i < tam1:
+    ar[0,i] = ar[0,i-1] + gap
+    i += 1
+#preenche a coluna 0
+while j < tam2:
+    ar[j,0] = ar[j-1,0] + gap
+    j += 1
+
+j = 1
+i = 1
+while j < tam2:
+    i = 1
+    while i < tam1:
+
+        if seq1[i-1] == seq2[j-1]: #verifica se o valor na diagonal vai ser match ou mismatch
+            valor_diagonal = match
+        else:
+            valor_diagonal = mismatch
+
+        #verifica os valores possível da célula em questão
+        diagonal = ar[j-1,i-1] + valor_diagonal
+        cima = ar[j-1,i] + gap
+        esquerda = ar[j,i-1] + gap
+
+        valor_celula = max(diagonal, cima, esquerda) #define que o valor da célula é o maior dentre os valores possíveis
+        ar[j,i] = valor_celula
+
+        i += 1
+    j += 1
+
+#print(ar)
+print("score =", ar[tam2 - 1, tam1 - 1]) #o score é o valor da célula no canto inferior direito
+j = tam2 - 1
+i = tam1 - 1
+
+#cria as strings pra colocar o alinhamento
+ident = ""
+aln1 = ""
+aln2 = ""
+cont = 0
+#faz o backtracking olhando qual dos valores anteriores é a célula anterior, pois célula anterior + gap ou match ou mismatch = a célula atual
+while not (i == 0 and j == 0):
+    if seq1[i-1] == seq2[j-1]:
+        valor_diagonal = match
+        ident += "|"
+        cont += 1
+    else:
+        valor_diagonal = mismatch
+        ident += " "
+
+    if ar[j-1, i-1] + valor_diagonal == ar[j, i]:
+        aln1 += seq1[i-1]
+        aln2 += seq2[j-1]
+        j -= 1
+        i -= 1
+
+    elif ar[j-1, i] + gap == ar[j, i]:
+        aln1 += "-"
+        aln2 += seq2[j-1]
+        j -= 1
+
+    elif ar[j, i-1] + gap == ar[j, i]:
+        aln1 += seq1[i-1]
+        aln2 += "-"
+        i -= 1
+
+#backtraking começou do final para o início então agora tem que inverter as strings de alinhamento
+print(aln1[::-1])
+print(ident[::-1])
+print(aln2[::-1])
+
+print("\nO Número de identidades é igual a", cont)
